@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import DoctorCard from "../components/DoctorCard";
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5195/api"
+  import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
 ).replace(/\/$/, "");
 
 const specialtyNames = {

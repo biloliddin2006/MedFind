@@ -3,7 +3,7 @@ export const USER_KEY = "medfind_patient";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5195/api"
+  "https://medfind-0woa.onrender.com/api"
 ).replace(/\/$/, "");
 
 function getErrorMessage(payload) {

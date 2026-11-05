@@ -3,7 +3,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const API = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5195/api"
+  import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
 ).replace(/\/$/, "");
 
 const TOKEN_KEY = "medfind_access_token";

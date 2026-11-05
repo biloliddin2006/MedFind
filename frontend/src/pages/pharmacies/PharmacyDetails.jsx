@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 const API = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5195/api"
+  import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
 ).replace(/\/$/, "");
 
 export default function PharmacyDetails() {
