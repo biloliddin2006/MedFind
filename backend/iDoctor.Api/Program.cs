@@ -18,8 +18,11 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://med-find-steel.vercel.app"
+)
     });
 });
 
@@ -100,14 +103,15 @@ builder.Services.AddHostedService<DataSeeder>();
 
 var app = builder.Build();
 
+// Apply existing EF Core migrations before DataSeeder starts.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
-    await using (var scope = app.Services.CreateAsyncScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
-    }
-
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseCors("LocalFrontend");
