@@ -32,7 +32,6 @@ public class ClinicsController : ControllerBase
     public async Task<ActionResult<List<ClinicDto>>> GetAll(
         [FromQuery] int? cityId,
         [FromQuery] string? q,
-        [FromQuery] int? specialtyId,
         [FromQuery] bool includeInactive = false)
     {
         var isAdmin = User.IsInRole(Roles.Admin);
@@ -48,18 +47,10 @@ public class ClinicsController : ControllerBase
         if (cityId.HasValue)
             query = query.Where(c => c.CityId == cityId.Value);
 
-        if (specialtyId.HasValue)
-            query = query.Where(c => c.Doctors.Any(d => d.IsVerified && d.User.IsActive &&
-                d.Specialties.Any(s => s.Id == specialtyId.Value)));
-
         if (!string.IsNullOrWhiteSpace(q))
         {
             var pattern = q.ToContainsPattern();
-            query = query.Where(c =>
-                EF.Functions.ILike(c.Name, pattern) ||
-                (c.City != null && EF.Functions.ILike(c.City.Name, pattern)) ||
-                (c.Address != null && EF.Functions.ILike(c.Address, pattern)) ||
-                (c.Phone != null && EF.Functions.ILike(c.Phone, pattern)));
+            query = query.Where(c => EF.Functions.ILike(c.Name, pattern));
         }
 
         return Ok(await Project(query.OrderBy(c => c.Name)).ToListAsync());
@@ -83,37 +74,6 @@ public class ClinicsController : ControllerBase
         var dto = await Project(query).FirstOrDefaultAsync();
 
         return dto is null ? NotFound() : Ok(dto);
-    }
-
-    [Authorize(Roles = Roles.ClinicManager)]
-    [HttpGet("me/photo")]
-    public async Task<IActionResult> GetMyClinicPhoto()
-    {
-        var clinic = await MyClinic().AsNoTracking().FirstOrDefaultAsync();
-        return clinic is null ? NotFound() : Ok(new { clinic.PhotoUrl });
-    }
-
-    [Authorize(Roles = Roles.ClinicManager)]
-    [HttpPut("me/photo")]
-    public async Task<IActionResult> UpdateMyClinicPhoto(ProfilePhotoRequest request)
-    {
-        if (!request.IsValidUrl())
-            return BadRequest(new { error = "Укажите действительную ссылку HTTP или HTTPS." });
-
-        var clinic = await MyClinic().FirstOrDefaultAsync();
-        if (clinic is null) return NotFound();
-
-        clinic.PhotoUrl = request.NormalizedUrl;
-        await _db.SaveChangesAsync();
-        return Ok(new { clinic.PhotoUrl });
-    }
-
-    private IQueryable<Clinic> MyClinic()
-    {
-        var userId = User.GetUserId();
-        return _db.Clinics.Where(c => c.ManagerUserId == userId && c.IsActive &&
-            c.ApprovalStatus == ClinicApprovalStatus.Approved &&
-            _db.Users.Any(u => u.Id == userId && u.IsActive && u.ManagedClinicId == c.Id));
     }
 
     // POST /api/clinics/register

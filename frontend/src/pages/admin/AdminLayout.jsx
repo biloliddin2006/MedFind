@@ -1,5 +1,4 @@
 
-import Brand from "../../components/Brand";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
@@ -29,14 +28,14 @@ function readRole(token) {
 }
 
 const navigation = [
-  { label: "Dashboard", path: "/admin" },
-  { label: "Patients", path: "/admin/patients" },
-  { label: "Doctors", path: "/admin/doctors" },
-  { label: "Clinics", path: "/admin/clinics" },
-  { label: "Clinic Requests", path: "/admin/clinic-requests" },
-  { label: "Pharmacies", path: "/admin/pharmacies" },
-  { label: "Pharmacy Requests", path: "/admin/pharmacy-requests" },
-  { label: "Doctor Assignments", path: "/admin/doctor-assignments" },
+  { label: "Dashboard", path: "/admin", icon: "◫" },
+  { label: "Patients", path: "/admin/patients", icon: "♙" },
+  { label: "Doctors", path: "/admin/doctors", icon: "⚕" },
+  { label: "Clinics", path: "/admin/clinics", icon: "▦" },
+  { label: "Clinic Requests", path: "/admin/clinic-requests", icon: "▤" },
+  { label: "Pharmacies", path: "/admin/pharmacies", icon: "💊" },
+  { label: "Pharmacy Requests", path: "/admin/pharmacy-requests", icon: "▤" },
+  { label: "Doctor Assignments", path: "/admin/doctor-assignments", icon: "⇄" },
 ];
 
 export default function AdminLayout() {
@@ -108,7 +107,9 @@ export default function AdminLayout() {
           onSubmit={handleLogin}
           className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-sm"
         >
-          <Brand />
+          <p className="text-sm font-bold uppercase tracking-widest text-brand-700">
+            MedFind Administration
+          </p>
 
           <h1 className="mt-4 text-3xl font-bold text-brand-900">
             Admin Login
@@ -153,47 +154,61 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 md:grid md:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="border-b border-slate-200 bg-white md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r">
-        <div className="px-5 py-4 md:border-b md:border-slate-200">
-          <Brand />
+    <div className="flex min-h-screen bg-slate-100">
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-brand-900 text-white">
+        <div className="border-b border-white/10 px-6 py-6">
+          <h1 className="text-xl font-bold">MedFind</h1>
+          <p className="mt-1 text-xs text-slate-300">Admin Panel</p>
         </div>
 
-        <nav aria-label="Administration" className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:flex-1 md:space-y-1 md:p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {navigation.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === "/admin"}
               className={({ isActive }) =>
-                `block whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium ${
-                  isActive ? "bg-teal-50 text-teal-900" : "text-slate-600 hover:bg-slate-100"
+                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-white text-brand-900"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`
               }
             >
+              <span className="text-lg">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="flex gap-2 border-t border-slate-200 px-4 py-3 md:flex-col">
-          <button type="button" onClick={() => navigate("/")} className="rounded-md px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100">
-            Back to website
+        <div className="border-t border-white/10 p-4">
+          <button
+            onClick={() => navigate("/")}
+            className="mb-2 w-full rounded-xl px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/10"
+          >
+            ← Back to website
           </button>
-          <button type="button" onClick={logout} className="rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100">
+
+          <button
+            onClick={logout}
+            className="w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold hover:bg-rose-700"
+          >
             Log out
           </button>
         </div>
       </aside>
 
-      <div className="min-w-0">
-        <header className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-8">
-          <p className="text-sm font-semibold text-slate-800">Administration</p>
+      <div className="min-w-0 flex-1 pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white px-8">
+          <h2 className="font-semibold text-brand-900">
+            Administration
+          </h2>
           <span className="text-sm text-slate-500">Administrator</span>
         </header>
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
+
+        <main className="p-6 lg:p-8">
           <Outlet context={{ token }} />
-        </div>
+        </main>
       </div>
     </div>
   );

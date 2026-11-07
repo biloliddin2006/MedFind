@@ -75,26 +75,63 @@ export default function AdminDashboard() {
   }, [token]);
 
   const cards = [
-    { title: "Total Doctors", value: stats.doctors },
-    { title: "Verified Doctors", value: stats.verified },
-    { title: "Active Clinics", value: stats.clinics },
-    { title: "Pending Requests", value: stats.pending },
+    { title: "Total Doctors", value: stats.doctors, icon: "⚕" },
+    { title: "Verified Doctors", value: stats.verified, icon: "✓" },
+    { title: "Active Clinics", value: stats.clinics, icon: "▦" },
+    { title: "Pending Requests", value: stats.pending, icon: "▤" },
   ];
 
   return (
-    <section>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Overview</h1>
+    <div>
+      <div className="mb-8">
+        <p className="text-sm font-medium text-brand-700">
+          MEDFIND / OVERVIEW
+        </p>
+        <h1 className="mt-2 text-3xl font-bold text-brand-900">
+          Dashboard
+        </h1>
+        <p className="mt-2 text-slate-500">
+          Overview of your healthcare platform.
+        </p>
+      </div>
 
-      {error && <p role="alert" className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && (
+        <div className="mb-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-      <dl className="mt-5 grid overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4 gap-px">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <div key={card.title} className="bg-white p-5">
-            <dt className="text-sm font-medium text-slate-600">{card.title}</dt>
-            <dd className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{loading || error ? "—" : card.value}</dd>
+          <div
+            key={card.title}
+            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-500">
+                {card.title}
+              </p>
+              <span className="text-2xl text-brand-700">
+                {card.icon}
+              </span>
+            </div>
+
+            <p className="mt-5 text-4xl font-bold text-brand-900">
+              {loading ? "—" : card.value}
+            </p>
           </div>
         ))}
-      </dl>
-    </section>
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-brand-900">
+          Welcome to MedFind Admin
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Use the sidebar to manage patients, doctors, clinics and
+          clinic applications.
+        </p>
+      </div>
+    </div>
   );
 }
