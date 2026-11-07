@@ -1,5 +1,3 @@
-import ProfilePhotoForm from "../../components/ProfilePhotoForm";
-import { apiRequest } from "../../api/client";
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -32,8 +30,6 @@ export default function ClinicDashboard() {
     patient?.role ?? patient?.roles?.[0] ?? ""
   ).toLowerCase();
 
-  const [clinicPhoto, setClinicPhoto] = useState(null);
-  const [photoError, setPhotoError] = useState("");
   const isManager = role === "clinicmanager";
   const isAdmin = role === "admin";
   const isPatient = role === "patient";
@@ -41,19 +37,6 @@ export default function ClinicDashboard() {
     (isManager || isAdmin || isPatient);
 
   const token = () => localStorage.getItem("medfind_access_token");
-
-  useEffect(() => {
-    if (!isManager) return;
-    const controller = new AbortController();
-    apiRequest("/clinics/me/photo", { signal: controller.signal })
-      .then((data) => {
-        if (!controller.signal.aborted) setClinicPhoto(data);
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) setPhotoError(err.message);
-      });
-    return () => controller.abort();
-  }, [isManager]);
 
   const loadAppointments = useCallback(async () => {
     const accessToken = token();
@@ -392,11 +375,6 @@ export default function ClinicDashboard() {
       <Link to="/dashboard" className="text-sm text-brand-700 hover:underline">
         ← Dashboard
       </Link>
-
-      {isManager && clinicPhoto && (
-        <ProfilePhotoForm endpoint="/clinics/me/photo" initialUrl={clinicPhoto.photoUrl} maxLength={1000} title="Фото клиники" />
-      )}
-      {isManager && photoError && <p role="alert" className="mt-4 text-sm text-red-700">{photoError}</p>}
 
       {/* Available doctors */}
       <section className="mt-10">

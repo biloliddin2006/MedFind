@@ -1,14 +1,62 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import DoctorCard from "../components/DoctorCard";
-import { searchDoctors } from "../api/doctors";
+import { useTranslation } from "react-i18next";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
 ).replace(/\/$/, "");
 
+const specialties = [
+  {
+    name: "Кардиолог",
+    icon: "♡",
+    description: "Сердце и сосуды",
+    color: "bg-[#fff0f2]",
+    iconColor: "bg-[#ffd8df] text-[#c43d5b]",
+    query: "Cardiologist",
+  },
+  {
+    name: "Терапевт",
+    icon: "+",
+    description: "Общее здоровье",
+    color: "bg-[#eaf7f3]",
+    iconColor: "bg-[#c9eee4] text-[#087c76]",
+    query: "Therapist",
+  },
+  {
+    name: "Дерматолог",
+    icon: "✳",
+    description: "Кожа и её здоровье",
+    color: "bg-[#f2efff]",
+    iconColor: "bg-[#ddd3ff] text-[#6848c7]",
+    query: "Dermatologist",
+  },
+  {
+    name: "Педиатр",
+    icon: "♧",
+    description: "Здоровье детей",
+    color: "bg-[#fff6e6]",
+    iconColor: "bg-[#ffe2a6] text-[#a65c12]",
+    query: "Pediatrician",
+  },
+];
+
+function normalizeDoctor(doctor) {
+  return {
+    id: doctor.id,
+    name: doctor.fullName || doctor.name || "Врач",
+    rating: doctor.averageRating ?? doctor.rating ?? 0,
+    price: doctor.consultationPrice ?? doctor.price ?? 0,
+    experience: doctor.experienceYears ?? doctor.experience ?? 0,
+    clinic: doctor.clinics?.[0]?.name || doctor.clinic || "",
+    photoUrl: doctor.photoUrl || doctor.PhotoUrl || "",
+  };
+}
+
 export default function Home() {
+  const { t } = useTranslation();
+
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,8 +69,18 @@ export default function Home() {
 
     async function loadDoctors() {
       try {
-        const { items } = await searchDoctors({ pageSize: 3 }, { signal: controller.signal });
-        if (!controller.signal.aborted) setFeatured(items);
+        const response = await fetch(`${API_BASE_URL}/doctors`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Ошибка загрузки врачей: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const items = Array.isArray(data) ? data : data?.items ?? [];
+
+        setFeatured(items.map(normalizeDoctor).slice(0, 4));
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Не удалось загрузить врачей.");
@@ -71,14 +129,15 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-4 lg:py-24">
           <div className="relative z-10">
             <h1 className="mt-7 max-w-3xl font-display text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-[#122d43] sm:text-6xl lg:text-7xl">
-              Забота о здоровье
+              Найдите врача,
               <span className="mt-1 block text-[#087b78]">
-                в одном месте
+                которому доверяете.
               </span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-8 text-[#637587] sm:text-lg">
-              Найдите врача, выберите клинику и узнайте, где купить нужные лекарства.
+              Изучайте профили специалистов, сравнивайте опыт и стоимость
+              приёма и выбирайте подходящего врача для себя и своей семьи.
             </p>
           </div>
 
@@ -156,7 +215,7 @@ export default function Home() {
 
         <div className="mt-8">
           {loading ? (
-            <LoadingGrid count={3} />
+            <LoadingGrid />
           ) : error ? (
             <div
               role="alert"
@@ -168,9 +227,9 @@ export default function Home() {
               <p className="mt-2 text-sm text-[#718092]">{error}</p>
             </div>
           ) : featured.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {featured.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} />
+                <DoctorPreview key={doctor.id} doctor={doctor} />
               ))}
             </div>
           ) : (
@@ -315,6 +374,93 @@ function SectionTitle({ eyebrow, title, description, link, linkText }) {
   );
 }
 
+function DoctorPreview({ doctor }) {
+  const rating = Number(doctor.rating);
+  const price = Number(doctor.price);
+  const hasPhoto = Boolean(doctor.photoUrl);
+
+  return (
+    <article className="group overflow-hidden rounded-[1.6rem] border border-[#e8eeeb] bg-white transition duration-300 hover:-translate-y-1 hover:border-[#cbded7] hover:shadow-[0_18px_45px_rgba(18,45,67,0.09)]">
+      <Link
+        to={`/doctor/${doctor.id}`}
+        className="relative block h-52 overflow-hidden bg-[#e9f4f0]"
+      >
+        {hasPhoto ? (
+          <img
+            src={doctor.photoUrl}
+            alt={doctor.name}
+            loading="lazy"
+            className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-105"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-3xl font-semibold text-[#087b78] shadow-sm">
+              {initials(doctor.name)}
+            </div>
+          </div>
+        )}
+
+        <div className="absolute bottom-3 left-3 rounded-full border border-white/80 bg-white/95 px-3 py-1.5 text-xs font-bold text-[#176d62] shadow-sm">
+          ★ {Number.isFinite(rating) && rating > 0 ? rating.toFixed(1) : "Новый"}
+        </div>
+      </Link>
+
+      <div className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#087b78]">
+          {doctor.specialty}
+        </p>
+        <h3 className="mt-2 line-clamp-2 min-h-12 font-display text-lg font-semibold leading-6 text-[#122d43]">
+          {doctor.name}
+        </h3>
+
+        <div className="mt-4 space-y-3 text-sm text-[#718092]">
+          <div className="flex items-center gap-2">
+            <span className="text-[#087b78]">◷</span>
+            <span>
+              Стаж: {doctor.experience || 0}{" "}
+              {getYearsLabel(doctor.experience)}
+            </span>
+          </div>
+
+          {doctor.clinic && (
+            <div className="flex items-start gap-2">
+              <span className="text-[#087b78]">⌖</span>
+              <span className="line-clamp-2">{doctor.clinic}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 border-t border-[#edf0ed] pt-4">
+          <p className="text-xs text-[#718092]">Стоимость приёма</p>
+          <p className="mt-1 text-xl font-semibold text-[#122d43]">
+            {Number.isFinite(price) && price > 0
+              ? `${price.toLocaleString("ru-RU")} ₸`
+              : "Уточняется"}
+          </p>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Link
+            to={`/doctor/${doctor.id}`}
+            className="rounded-full border border-[#cddbdc] px-2 py-3 text-center text-xs font-semibold text-[#173c50] transition hover:bg-[#f0f7f4] sm:text-sm"
+          >
+            Подробнее
+          </Link>
+          <Link
+            to={`/doctor/${doctor.id}#booking`}
+            className="rounded-full bg-[#086e70] px-2 py-3 text-center text-xs font-semibold text-white transition hover:bg-[#075c5e] sm:text-sm"
+          >
+            Записаться
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function ClinicCard({ clinic }) {
   const photoUrl = clinic.photoUrl || clinic.PhotoUrl;
   const address = clinic.address || clinic.Address;
@@ -371,10 +517,10 @@ function ClinicCard({ clinic }) {
   );
 }
 
-function LoadingGrid({ count = 4 }) {
+function LoadingGrid() {
   return (
-    <div className={`grid gap-5 sm:grid-cols-2 ${count === 3 ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>
-      {Array.from({ length: count }, (_, index) => index).map((item) => (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {[1, 2, 3, 4].map((item) => (
         <div
           key={item}
           className="overflow-hidden rounded-3xl border border-[#e8eeeb] bg-white"
@@ -410,4 +556,25 @@ function EmptyState({ title, description, link, linkText }) {
       </Link>
     </div>
   );
+}
+
+function initials(name = "") {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+}
+
+function getYearsLabel(value) {
+  const number = Math.abs(Number(value) || 0);
+  const lastTwo = number % 100;
+  const last = number % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 14) return "лет";
+  if (last === 1) return "год";
+  if (last >= 2 && last <= 4) return "года";
+  return "лет";
 }

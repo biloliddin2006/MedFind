@@ -1,6 +1,5 @@
 
 import { useEffect, useState } from "react";
-import ProfilePhotoForm from "../components/ProfilePhotoForm";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -229,10 +228,6 @@ export default function Dashboard() {
                 title="Professional profile"
                 description="Your credentials and consultation details."
               />
-
-              {doctor && (
-                <ProfilePhotoForm endpoint="/doctors/me/photo" initialUrl={doctor.photoUrl} maxLength={500} title="Фото врача" />
-              )}
 
               {doctorError && (
                 <p role="alert" className="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700">

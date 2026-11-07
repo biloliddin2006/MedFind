@@ -27,11 +27,7 @@ public class DoctorsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(query.Q))
         {
             var pattern = query.Q.ToContainsPattern();
-            doctors = doctors.Where(d =>
-                EF.Functions.ILike(d.User.FullName, pattern) ||
-                d.Specialties.Any(s => EF.Functions.ILike(s.Name, pattern) ||
-                    (s.NameRu != null && EF.Functions.ILike(s.NameRu, pattern))) ||
-                d.Clinics.Any(c => c.IsActive && EF.Functions.ILike(c.Name, pattern)));
+            doctors = doctors.Where(d => EF.Functions.ILike(d.User.FullName, pattern));
         }
         if (query.SpecialtyId.HasValue)
             doctors = doctors.Where(d => d.Specialties.Any(s => s.Id == query.SpecialtyId));
@@ -73,7 +69,7 @@ public class DoctorsController : ControllerBase
                 ExperienceYears = d.ExperienceYears,
                 ConsultationPrice = d.ConsultationPrice,
                 AverageRating = d.AverageRating,
-                Specialties = d.Specialties.Select(s => new SpecialtyDto(s.Id, s.NameRu ?? s.Name)).ToList(),
+                Specialties = d.Specialties.Select(s => new SpecialtyDto(s.Id, s.Name)).ToList(),
                 Clinics = d.Clinics.Where(c => c.IsActive)
                                    .Select(c => new ClinicSummaryDto(c.Id, c.Name, c.Address)).ToList()
             })
@@ -138,21 +134,6 @@ public class DoctorsController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(ToDto(doctor));
-    }
-
-    [Authorize(Roles = Roles.Doctor)]
-    [HttpPut("me/photo")]
-    public async Task<IActionResult> UpdateMyPhoto(ProfilePhotoRequest request)
-    {
-        if (!request.IsValidUrl() || request.NormalizedUrl?.Length > 500)
-            return BadRequest(new { error = "Укажите ссылку HTTP или HTTPS длиной до 500 символов." });
-
-        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserId == User.GetUserId());
-        if (doctor is null) return NotFound();
-
-        doctor.PhotoUrl = request.NormalizedUrl;
-        await _db.SaveChangesAsync();
-        return Ok(new { doctor.PhotoUrl });
     }
 
     private IQueryable<Doctor> DoctorQuery() =>
