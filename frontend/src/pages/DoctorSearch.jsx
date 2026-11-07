@@ -1,142 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { searchDoctors } from "../api/doctors";
 import DoctorCard from "../components/DoctorCard";
+import CatalogFilters, { useCatalogOptions } from "../components/CatalogFilters";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
-).replace(/\/$/, "");
-
-const specialtyNames = {
-  Therapist: "Терапевт",
-  Cardiologist: "Кардиолог",
-  Dermatologist: "Дерматолог",
-  Neurologist: "Невролог",
-  Pediatrician: "Педиатр",
-};
-
-const specialtyIcons = {
-  "Все": "✚",
-  "Терапевт": "🩺",
-  "Кардиолог": "❤️",
-  "Дерматолог": "✨",
-  "Невролог": "🧠",
-  "Педиатр": "🧸",
-};
-
-function normalizeDoctor(doctor) {
-  const specialty =
-    doctor.specialties
-      ?.map((item) => specialtyNames[item.name] || item.name)
-      .join(", ") || "Специальность не указана";
-
-  return {
-    id: doctor.id,
-    name: doctor.fullName,
-    rating: doctor.averageRating ?? 0,
-    price: doctor.consultationPrice ?? 0,
-    specialty,
-    experience: doctor.experienceYears ?? 0,
-    clinic: doctor.clinics?.[0]?.name || "Клиника не указана",
-    photoUrl: doctor.photoUrl || doctor.PhotoUrl,
-  };
-}
+const emptyFilters = { q: "", cityId: "", specialtyId: "" };
 
 export default function DoctorSearch() {
-  const [doctors, setDoctors] = useState([]);
-  const [search, setSearch] = useState("");
-  const [specialty, setSpecialty] = useState("Все");
+  const [filters, setFilters] = useState(emptyFilters);
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState({ items: [], totalCount: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const options = useCatalogOptions();
+  const hasFilters = Object.values(filters).some(Boolean);
 
   useEffect(() => {
     const controller = new AbortController();
-
-    async function loadDoctors() {
+    setLoading(true);
+    setError("");
+    const timer = setTimeout(async () => {
       try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(`${API_BASE_URL}/doctors`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        const items = Array.isArray(data)
-          ? data
-          : Array.isArray(data.items)
-            ? data.items
-            : [];
-
-        if (!controller.signal.aborted) {
-          setDoctors(items.map(normalizeDoctor));
-        }
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError(
-            "Не удалось загрузить врачей. Убедитесь, что backend запущен."
-          );
-          console.error("Failed to load doctors:", err);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadDoctors();
-
-    return () => controller.abort();
-  }, [retry]);
-
-  const specialties = useMemo(
-    () => [
-      "Все",
-      ...new Set(
-        doctors.flatMap((doctor) =>
-          doctor.specialty
-            .split(",")
-            .map((item) => item.trim())
-            .filter(
-              (item) =>
-                item && item !== "Специальность не указана"
-            )
-        )
-      ),
-    ],
-    [doctors]
-  );
-
-  const filteredDoctors = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("ru");
-
-    return doctors.filter((doctor) => {
-      const matchesSearch = [
-        doctor.name,
-        doctor.specialty,
-        doctor.clinic,
-      ].some((value) =>
-        value?.toLocaleLowerCase("ru").includes(query)
-      );
-
-      const matchesSpecialty =
-        specialty === "Все" ||
-        doctor.specialty.split(",").some(
-          (item) => item.trim() === specialty
+        const data = await searchDoctors(
+          { ...filters, q: filters.q.trim(), page },
+          { signal: controller.signal },
         );
+        if (!controller.signal.aborted) setResult(data);
+      } catch (err) {
+        if (!controller.signal.aborted) setError(err.message);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [filters, page, retry]);
 
-      return matchesSearch && matchesSpecialty;
-    });
-  }, [doctors, search, specialty]);
+  function updateFilter(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+    setPage(1);
+  }
 
   function resetFilters() {
-    setSearch("");
-    setSpecialty("Все");
+    setFilters(emptyFilters);
+    setPage(1);
   }
 
   return (
@@ -183,97 +92,19 @@ export default function DoctorSearch() {
             <p className="text-sm text-slate-500">
               Найдено врачей:{" "}
               <span className="font-semibold text-[#245541]">
-                {filteredDoctors.length}
+                {result.totalCount}
               </span>
             </p>
           )}
         </div>
 
-        {/* Search input */}
-        <div className="mt-6">
-          <label htmlFor="doctor-search" className="sr-only">
-            Поиск врачей
-          </label>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-[#54806d] focus-within:ring-4 focus-within:ring-emerald-900/5 sm:max-w-xl">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              className="h-5 w-5 shrink-0 text-slate-400"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m16 16 4 4" />
-            </svg>
-
-            <input
-              id="doctor-search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Имя, специальность или клиника..."
-              className="min-w-0 flex-1 bg-transparent py-4 text-sm text-slate-800 outline-none placeholder:text-slate-400"
-            />
-
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="rounded-lg px-2 py-1 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                Очистить
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Round specialty filters */}
-        {!loading && !error && doctors.length > 0 && (
-          <div className="mt-9">
-            <h3 className="text-sm font-semibold text-[#183d32]">
-              Специальности
-            </h3>
-
-            <div className="mt-5 flex gap-5 overflow-x-auto pb-4">
-              {specialties.map((item) => {
-                const selected = specialty === item;
-                const icon = specialtyIcons[item] || "⚕";
-
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setSpecialty(item)}
-                    aria-pressed={selected}
-                    className="group flex min-w-[76px] shrink-0 flex-col items-center gap-2"
-                  >
-                    <span
-                      className={`flex h-[68px] w-[68px] items-center justify-center rounded-full border text-2xl transition duration-200 group-hover:-translate-y-1 ${
-                        selected
-                          ? "border-[#245541] bg-[#245541] text-white shadow-lg shadow-emerald-900/15"
-                          : "border-[#dce7dd] bg-white text-[#245541] group-hover:border-[#9dbba4] group-hover:bg-[#edf4ee]"
-                      }`}
-                    >
-                      {icon}
-                    </span>
-
-                    <span
-                      className={`max-w-[90px] text-center text-xs font-semibold ${
-                        selected
-                          ? "text-[#245541]"
-                          : "text-slate-500 group-hover:text-[#245541]"
-                      }`}
-                    >
-                      {item}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <CatalogFilters
+          filters={filters}
+          onChange={updateFilter}
+          onReset={resetFilters}
+          options={options}
+          placeholder="Имя врача, специальность или клиника"
+        />
 
         {/* Loading */}
         {loading && (
@@ -335,25 +166,25 @@ export default function DoctorSearch() {
         )}
 
         {/* Empty */}
-        {!loading && !error && filteredDoctors.length === 0 && (
+        {!loading && !error && result.items.length === 0 && (
           <div className="mt-8 rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#edf4ee] text-3xl text-[#245541]">
               ⚕
             </div>
 
             <h3 className="mt-5 text-xl font-semibold text-[#183d32]">
-              {doctors.length === 0
+              {!hasFilters
                 ? "Пока нет врачей"
                 : "Врачи не найдены"}
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              {doctors.length === 0
+              {!hasFilters
                 ? "Когда специалисты появятся в системе, они будут отображаться здесь."
                 : "Попробуйте изменить поисковый запрос или выбрать другую специальность."}
             </p>
 
-            {(search || specialty !== "Все") && (
+            {hasFilters && (
               <button
                 type="button"
                 onClick={resetFilters}
@@ -366,12 +197,20 @@ export default function DoctorSearch() {
         )}
 
         {/* Doctor cards */}
-        {!loading && !error && filteredDoctors.length > 0 && (
+        {!loading && !error && result.items.length > 0 && (
           <div className="mt-8 grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredDoctors.map((doctor) => (
+            {result.items.map((doctor) => (
               <DoctorCard key={doctor.id} doctor={doctor} />
             ))}
           </div>
+        )}
+
+        {!loading && !error && result.totalPages > 1 && (
+          <nav aria-label="Страницы каталога врачей" className="mt-6 flex items-center justify-center gap-4 text-sm">
+            <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)} className="rounded-md border border-slate-300 bg-white px-3 py-2 disabled:opacity-40">Назад</button>
+            <span>{page} / {result.totalPages}</span>
+            <button type="button" disabled={page >= result.totalPages} onClick={() => setPage(page + 1)} className="rounded-md border border-slate-300 bg-white px-3 py-2 disabled:opacity-40">Далее</button>
+          </nav>
         )}
 
         <p className="mt-10 text-center text-xs leading-5 text-slate-400">

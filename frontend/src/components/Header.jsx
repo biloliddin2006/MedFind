@@ -1,3 +1,4 @@
+import Brand from "./Brand";
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -11,7 +12,7 @@ const links = [
 ];
 
 export default function Header() {
-  const { patient, loading, logout } = useAuth();
+  const { patient, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const role = String(
@@ -19,9 +20,9 @@ export default function Header() {
   ).toLowerCase();
 
   const isDoctor = role.includes("doctor");
-  const isPatient = Boolean(patient) && !isDoctor;
+  const isClinicManager = role === "clinicmanager";
 
-  const cabinetPath = isDoctor ? "/dashboard" : "/profile";
+  const cabinetPath = isDoctor ? "/dashboard" : isClinicManager ? "/clinic-dashboard" : "/profile";
 
   const linkClass = ({ isActive }) =>
     [
@@ -41,18 +42,7 @@ export default function Header() {
           className="group mr-auto flex shrink-0 items-center gap-3"
           aria-label="MedFind — главная"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-teal-300 shadow-lg shadow-slate-900/10 transition duration-300 group-hover:rotate-[-5deg] group-hover:bg-teal-800">
-            <PulseIcon />
-          </span>
-
-          <span className="flex flex-col">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">
-              Med<span className="text-teal-700">Find</span>
-            </span>
-            <span className="-mt-0.5 text-[10px] font-semibold uppercase tracking-[0.19em] text-slate-400">
-              Healthcare, simplified
-            </span>
-          </span>
+          <Brand />
         </Link>
 
         {/* Desktop navigation */}
@@ -78,7 +68,7 @@ export default function Header() {
                 className="hidden items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-teal-800 sm:inline-flex"
               >
                 <UserIcon />
-                <span>{isDoctor ? "Кабинет врача" : "Личный кабинет"}</span>
+                <span>{isDoctor ? "Кабинет врача" : isClinicManager ? "Кабинет клиники" : "Личный кабинет"}</span>
               </Link>
             ) : (
               <Link
@@ -136,7 +126,7 @@ export default function Header() {
                   className="mt-1 flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-teal-800"
                 >
                   <UserIcon />
-                  {isDoctor ? "Кабинет врача" : "Личный кабинет"}
+                  {isDoctor ? "Кабинет врача" : isClinicManager ? "Кабинет клиники" : "Личный кабинет"}
                 </Link>
               ) : (
                 <Link
@@ -151,25 +141,6 @@ export default function Header() {
         </div>
       )}
     </header>
-  );
-}
-
-function PulseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-6 w-6"
-      aria-hidden="true"
-    >
-      <path
-        d="M2 12h4l2.5-7L13 19l2.5-7H22"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
