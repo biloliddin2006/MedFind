@@ -6,6 +6,8 @@ import PharmacyRegister from "./pages/pharmacies/PharmacyRegister";
 import PharmacyRequests from "./pages/admin/PharmacyRequests";
 import PharmacyDetails from "./pages/pharmacies/PharmacyDetails";
 
+import { useAuth } from "./auth/AuthContext";
+import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import DoctorSearch from "./pages/DoctorSearch";
 import DoctorProfile from "./pages/DoctorProfile";
@@ -28,6 +30,12 @@ import Doctors from "./pages/admin/Doctors";
 import AdminClinics from "./pages/admin/Clinics";
 import ClinicRequests from "./pages/admin/ClinicRequests";
 import DoctorAssignments from "./pages/admin/DoctorAssignments";
+
+function AccountDashboard() {
+  const { patient } = useAuth();
+  const role = String(patient?.role ?? patient?.roles?.[0] ?? patient?.userType ?? "").toLowerCase();
+  return role === "doctor" ? <Dashboard /> : <ClinicDashboard />;
+}
 
 export default function App() {
   const location = useLocation();
@@ -73,7 +81,7 @@ export default function App() {
             }
           />
 
-          <Route path="/dashboard" element={<ClinicDashboard />} />
+          <Route path="/dashboard" element={<RequireAuth><AccountDashboard /></RequireAuth>} />
 
           <Route
             path="/profile-demo"

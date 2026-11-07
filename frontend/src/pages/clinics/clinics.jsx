@@ -1,64 +1,41 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiRequest } from "../../api/client";
+import CatalogFilters, { useCatalogOptions } from "../../components/CatalogFilters";
 
-const API = (
-  import.meta.env.VITE_API_BASE_URL || "https://medfind-0woa.onrender.com/api"
-).replace(/\/$/, "");
+const emptyFilters = { q: "", cityId: "", specialtyId: "" };
 
 export default function Clinics() {
-  const [clinics, setClinics] = useState([]);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [filteredClinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
+  const options = useCatalogOptions();
+  const hasFilters = Object.values(filters).some(Boolean);
 
   useEffect(() => {
-    let active = true;
-
-    fetch(`${API}/clinics`)
-      .then(async (response) => {
-        const data = await response.json().catch(() => []);
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              data?.title ||
-              "Не удалось загрузить клиники"
-          );
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(filters)) {
+          if (value.trim()) params.set(key, value.trim());
         }
-        return data;
-      })
-      .then((data) => {
-        if (active) {
-          setClinics(Array.isArray(data) ? data : data?.items ?? []);
-        }
-      })
-      .catch((err) => {
-        if (active) setError(err.message || "Ошибка загрузки клиник");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
+        const data = await apiRequest(`/clinics?${params}`, { signal: controller.signal });
+        if (!controller.signal.aborted) setClinics(Array.isArray(data) ? data : data?.items ?? []);
+      } catch (err) {
+        if (!controller.signal.aborted) setError(err.message);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 200);
     return () => {
-      active = false;
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, []);
-
-  const filteredClinics = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) return clinics;
-
-    return clinics.filter((clinic) =>
-      [
-        clinic.name,
-        clinic.cityName,
-        clinic.address,
-        clinic.phone,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query))
-    );
-  }, [clinics, search]);
+  }, [filters]);
 
   return (
     <main className="min-h-screen bg-[#f7f8f5]">
@@ -107,44 +84,13 @@ export default function Clinics() {
           )}
         </div>
 
-        <div className="mt-6">
-          <label htmlFor="clinic-search" className="sr-only">
-            Поиск клиник
-          </label>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-[#54806d] focus-within:ring-4 focus-within:ring-emerald-900/5 sm:max-w-xl">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              className="h-5 w-5 shrink-0 text-slate-400"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m16 16 4 4" />
-            </svg>
-
-            <input
-              id="clinic-search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Название, город, адрес..."
-              className="min-w-0 flex-1 bg-transparent py-4 text-sm text-slate-800 outline-none placeholder:text-slate-400"
-            />
-
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="rounded-lg px-2 py-1 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                Очистить
-              </button>
-            )}
-          </div>
-        </div>
+        <CatalogFilters
+          filters={filters}
+          onChange={(key, value) => setFilters((current) => ({ ...current, [key]: value }))}
+          onReset={() => setFilters(emptyFilters)}
+          options={options}
+          placeholder="Название клиники, город или адрес"
+        />
 
         {/* Loading state */}
         {loading && (
@@ -215,18 +161,18 @@ export default function Clinics() {
             </div>
 
             <h3 className="mt-5 text-xl font-semibold text-[#183d32]">
-              {search ? "Ничего не найдено" : "Пока нет клиник"}
+              {hasFilters ? "Ничего не найдено" : "Пока нет клиник"}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              {search
+              {hasFilters
                 ? "Попробуйте изменить поисковый запрос."
                 : "Когда клиники появятся в системе, они будут отображаться здесь."}
             </p>
 
-            {search && (
+            {hasFilters && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={() => setFilters(emptyFilters)}
                 className="mt-5 rounded-xl bg-[#245541] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#173f35]"
               >
                 Показать все клиники
