@@ -71,7 +71,6 @@ src/
     doctors.js          mock doctor data (replace with real API later)
 ```
 
-
 ## Appointment API
 
 - `GET /api/appointments/availability?doctorId={guid}&date=YYYY-MM-DD` lists available times.
