@@ -1,3 +1,4 @@
+
 # Patient App — Beta
 
 React + Vite + React Router. Includes patient registration, login, and a protected patient profile alongside doctor search and profiles.
